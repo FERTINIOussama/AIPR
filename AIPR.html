@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Quiz AIPR — Atlantique Etudes</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
+#app{max-width:780px;margin:0 auto;padding:1rem}
+.header{display:flex;align-items:center;gap:14px;padding:1rem 1.25rem;background:#075ead;border-radius:12px;margin-bottom:1.25rem}
+.logo-box{width:52px;height:52px;background:#000;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.header-text h1{font-size:19px;font-weight:600;color:#075ead}
+.header-text p{font-size:13px;color:#888;margin-top:2px}
+.prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.prog-label{font-size:15px;color:#555}
+.score-live{font-size:16px;font-weight:600;color:#075ead}
+.prog-wrap{background:#dde5f0;border-radius:99px;height:9px;margin-bottom:1.5rem;overflow:hidden}
+.prog-fill{height:100%;background:#075ead;border-radius:99px;transition:width .4s}
+.card{background:#fff;border:1px solid #dde5f0;border-radius:15px;padding:1.5rem;margin-bottom:1.25rem}
+.tag-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.tag{display:inline-block;font-size:13px;font-weight:600;padding:4px 13px;border-radius:99px;background:#e6f1fb;color:#075ead}
+.tag-prio{display:inline-block;font-size:13px;font-weight:600;padding:4px 13px;border-radius:99px;background:#fdecea;color:#c0392b}
+.q-text{font-size:18px;font-weight:500;color:#1a1a2e;line-height:1.55;margin-bottom:1.25rem}
+.q-img{width:100%;max-height:350px;object-fit:contain;border-radius:10px;margin-bottom:1.25rem;border:1px solid #dde5f0;background:#f8f9fa}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{background:#fff;border:1.5px solid #dde5f0;border-radius:10px;padding:13px 18px;text-align:left;cursor:pointer;font-size:17px;color:#222;transition:background .15s,border-color .15s;display:flex;align-items:flex-start;gap:13px;width:100%}
+.opt:hover:not(:disabled){background:#e8f2fb;border-color:#075ead}
+.opt-letter{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#f0f4f8;font-size:14px;font-weight:600;flex-shrink:0;color:#555;border:1px solid #dde5f0;min-width:30px}
+.opt.correct{background:#eaf3de;border-color:#3b6d11}
+.opt.correct .opt-letter{background:#639922;color:#fff;border-color:#639922}
+.opt.wrong{background:#fdecea;border-color:#c0392b}
+.opt.wrong .opt-letter{background:#e24b4a;color:#fff;border-color:#e24b4a}
+.opt:disabled{cursor:default}
+.feedback{display:none;margin-top:1.25rem;border-radius:10px;padding:15px 18px;font-size:16px;line-height:1.6;border:1px solid}
+.feedback.show{display:block}
+.feedback.ok{background:#eaf3de;border-color:#3b6d11;color:#27500a}
+.feedback.ko{background:#fdecea;border-color:#c0392b;color:#7b1d1d}
+.fb-title{font-weight:600;margin-bottom:4px;font-size:16px}
+.prio-warning{display:inline-block;background:#fff3cd;border:1px solid #f0ad4e;color:#856404;font-size:13px;padding:3px 10px;border-radius:4px;margin-left:8px}
+.next-btn{display:none;margin-top:1.25rem;width:100%;padding:15px;background:#075ead;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer}
+.next-btn.show{display:block}
+.next-btn:hover{background:#054f8a}
+/* SCORE */
+.score-screen{display:none;text-align:center;padding:1.5rem .5rem}
+.score-screen.show{display:block}
+.score-ring{width:120px;height:120px;border-radius:50%;margin:0 auto 1.25rem;display:flex;align-items:center;justify-content:center;flex-direction:column;border:4px solid #075ead;background:#e8f2fb}
+.score-ring.pass{border-color:#2e7d32;background:#eaf3de}
+.score-ring.fail{border-color:#c0392b;background:#fdecea}
+.score-ring .num{font-size:28px;font-weight:700;color:#075ead}
+.score-ring.pass .num{color:#2e7d32}
+.score-ring.fail .num{color:#c0392b}
+.score-ring .den{font-size:13px;color:#075ead}
+.score-screen h2{font-size:20px;font-weight:600;color:#1a1a2e;margin-bottom:6px}
+.score-screen .msg{font-size:14px;color:#555;margin-bottom:1.25rem}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
+.stat-box{background:#fff;border:1px solid #dde5f0;border-radius:8px;padding:10px;text-align:center}
+.stat-box .sl{font-size:11px;color:#888;margin-bottom:3px}
+.stat-box .sv{font-size:17px;font-weight:600;color:#075ead}
+.seuil-bar{background:#fff;border:1px solid #dde5f0;border-radius:8px;padding:10px 14px;margin-bottom:1.25rem;font-size:13px;color:#333;text-align:left}
+.seuil-bar span.v{font-weight:600}
+.rev-list{margin-bottom:1.5rem;text-align:left;max-height:320px;overflow-y:auto}
+.rev-item{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:6px;margin-bottom:5px;background:#fff;border:1px solid #eee}
+.rev-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.rev-dot.ok{background:#639922}
+.rev-dot.ko{background:#e24b4a}
+.rev-dot.ko-prio{background:#c0392b;box-shadow:0 0 0 2px #fdecea}
+.rev-q{font-size:12px;color:#333;line-height:1.4}
+.rev-a{font-size:11px;color:#888;margin-top:2px}
+.rev-prio{font-size:10px;color:#c0392b;font-weight:600}
+.restart-btn{padding:11px 32px;background:#075ead;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.restart-btn:hover{background:#054f8a}
+/* ACCUEIL */
+.welcome{text-align:center;padding:1.5rem 1rem}
+.welcome h2{font-size:20px;font-weight:600;color:#1a1a2e;margin-bottom:8px}
+.welcome p{font-size:14px;color:#555;margin-bottom:1.25rem;line-height:1.6}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem;text-align:left}
+.info-box{background:#f8fafd;border:1px solid #dde5f0;border-radius:8px;padding:12px}
+.info-box .ib-label{font-size:11px;color:#888;margin-bottom:4px}
+.info-box .ib-val{font-size:15px;font-weight:600;color:#075ead}
+.info-box.prio{background:#fff8f8;border-color:#f5c6c6}
+.info-box.prio .ib-val{color:#c0392b}
+.start-btn{padding:13px 40px;background:#075ead;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.start-btn:hover{background:#054f8a}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header"style="background:#fff;">
+    <div class="logo-box" style="background:#fff;">
+      <img src="images/AEAIPR.png" alt="AE Logo" style="width:55px;height:55px;object-fit:contain;border-radius:6px;" onerror="this.style.display='none'"/>
+    </div>
+    <div class="header-text">
+      <h1>Atlantique Etudes — Quiz AIPR</h1>
+      <p id="header-sub">Préparation examen · Toutes catégories</p>
+    </div>
+  </div>
+
+  <div id="screen-welcome">
+    <div class="card welcome">
+      <h2>Bienvenue dans le Quiz AIPR ATLANTIQUE-ETUDES</h2>
+      <p>Chaque session tire <strong>40 questions aléatoires</strong> parmi la banque complète.<br>Les réponses sont mélangées à chaque partie.</p>
+      <div class="info-grid">
+        <div class="info-box"><div class="ib-label">Questions par session</div><div class="ib-val">40</div></div>
+        <div class="info-box"><div class="ib-label">Score maximum</div><div class="ib-val">80 pts</div></div>
+        <div class="info-box"><div class="ib-label">Bonne réponse</div><div class="ib-val">+2 pts</div></div>
+        <div class="info-box"><div class="ib-label">Je ne sais pas</div><div class="ib-val">0 pt</div></div>
+        <div class="info-box"><div class="ib-label">Mauvaise réponse</div><div class="ib-val">−1 pt</div></div>
+        <div class="info-box prio"><div class="ib-label">⚠ Question prioritaire — bonne réponse</div><div class="ib-val">+2 pts</div></div>
+        <div class="info-box prio"><div class="ib-label">⚠ Question prioritaire — mauvaise réponse</div><div class="ib-val">−5 pts</div></div>
+        <div class="info-box prio"><div class="ib-label">⚠ Question prioritaire — je ne sais pas</div><div class="ib-val">0 pt</div></div>
+        <div class="info-box" style="grid-column:span 2"><div class="ib-label">Seuil de réussite</div><div class="ib-val">40 / 80 pts (50 %)</div></div>
+      </div>
+      <button class="start-btn" onclick="startQuiz()">Commencer le Quiz</button>
+    </div>
+  </div>
+
+  <div id="screen-quiz" style="display:none">
+    <div class="prog-row">
+      <span class="prog-label" id="prog-label">Question 1 / 40</span>
+      <span class="score-live" id="score-live">Score : 0 / 80</span>
+    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:2.5%"></div></div>
+    <div class="card">
+      <div class="tag-row">
+        <span class="tag" id="q-tag"></span>
+        <span class="tag-prio" id="q-prio" style="display:none">⚠ Prioritaire (−5 si fausse)</span>
+      </div>
+      <div class="q-text" id="q-text"></div>
+      <img id="q-img" class="q-img" style="display:none" alt="Illustration"/>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="feedback">
+        <div class="fb-title" id="fb-title"></div>
+        <div id="fb-body"></div>
+      </div>
+    </div>
+    <button class="next-btn" id="next-btn" onclick="nextQ()">Question suivante →</button>
+  </div>
+
+  <div id="screen-score" style="display:none">
+    <div class="card score-screen show">
+      <div class="score-ring" id="score-ring">
+        <span class="num" id="sc-num">0</span>
+        <span class="den" id="sc-den">/ 80</span>
+      </div>
+      <h2 id="sc-title"></h2>
+      <p class="msg" id="sc-msg"></p>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="sl">Bonnes réponses</div><div class="sv" id="st-ok"></div></div>
+        <div class="stat-box"><div class="sl">Mauvaises réponses</div><div class="sv" id="st-ko"></div></div>
+        <div class="stat-box"><div class="sl">Pénalités prio.</div><div class="sv" style="color:#c0392b" id="st-pen"></div></div>
+      </div>
+      <div class="seuil-bar">Seuil de réussite : <span class="v">40 / 80 pts</span> — <span class="v" id="sc-verdict"></span></div>
+      <div class="rev-list" id="rev-list"></div>
+      <button class="restart-btn" onclick="startQuiz()">Nouvelle session (40 nouvelles questions)</button>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:1.75rem 1rem 1.5rem;margin-top:.5rem">
+  <img src="images/AE.png" alt="Atlantique Etudes" style="height:48px;object-fit:contain;" onerror="this.style.display='none'"/>
+  <p style="font-size:13px;color:#075ead;font-weight:500;letter-spacing:.3px">ATLANTIQUE-ETUDES © 2026 &nbsp;·&nbsp; Tous les droits sont réservés</p>
+</div>
+
+<script>
+// [numero, tag, question, A, B, C, D, correctLetter, prioritaire]
+const RAW=[
+["1-1_001","DT/DICT","Si je ne prévois pas de clause particulière dans le marché de travaux, je devrai renouveler la DT au bout de :","1 mois","3 mois","6 mois","Je ne sais pas","B",0],
+["1-1_002","DT/DICT","Qui doit établir la DT ?","Le responsable de projet","L'exécutant des travaux","L'exploitant de réseau","Je ne sais pas","A",1],
+["1-1_003","DT/DICT","Qui doit envoyer la DT aux exploitants des réseaux concernés ?","Le guichet unique","Le responsable de projet","Le responsable de l'entreprise exécutant les travaux","Je ne sais pas","B",0],
+["1-1_005","DT/DICT","Le responsable de projet doit inclure obligatoirement dans le dossier de consultation des entreprises :","Le plan de récolement","Les DT et leurs récépissés, ainsi que le résultat des investigations complémentaires éventuellement réalisées","Les DICT et leurs récépissés","Je ne sais pas","B",1],
+["1-1_006","Travaux urgents","Parmi les travaux suivants, quels sont ceux qui répondent à la définition de Travaux Urgents ?","Les travaux de rétablissement d'un service public après une coupure accidentelle","Les travaux de raccordement d'une nouvelle habitation","La pose de mobiliers urbains pour une manifestation","Je ne sais pas","A",0],
+["1-1_007","Travaux urgents","La procédure d'Avis de Travaux Urgents diffère notamment selon :","Le délai d'intervention et sa nature","Le gestionnaire du lieu d'intervention","La personne qui l'envoie","Je ne sais pas","A",0],
+["1-1_008","DT/DICT","Dans lequel des cas suivants le responsable de projet est dispensé de DT ?","Le reprofilage de fossés","Les travaux agricoles ou horticoles à moins de 40 cm de profondeur","Le décapage d'une chaussée à moins de 15 cm de profondeur","Je ne sais pas","B",0],
+["1-1_009","DT/DICT","La DT et la DICT sont obligatoires si les travaux s'approchent d'une ligne aérienne à très haute tension et à conducteurs nus à moins de :","7 mètres","3 mètres","5 mètres","Je ne sais pas","C",0],
+["1-1_010","DT/DICT","La DT et la DICT sont obligatoires si les travaux s'approchent d'une ligne aérienne à basse tension et à conducteurs nus à moins de :","7 mètres","3 mètres","5 mètres","Je ne sais pas","B",0],
+["1-1_012","DT/DICT","Le remplacement d'un potelet est dispensé de DT et DICT lorsqu'il s'effectue :","Avec élargissement de la fouille initiale, à 20 cm de profondeur","Sans élargissement de la fouille initiale, à 60 cm de profondeur","Sans élargissement de la fouille initiale, à 40 cm de profondeur","Je ne sais pas","C",0],
+["1-1_013","DT/DICT","Je suis à la fois responsable de projet et exécutant de travaux. Je fais :","Uniquement une DICT","Uniquement une DT","Une DT-DICT conjointe","Je ne sais pas","C",0],
+["1-1_014","DT/DICT","La DT-DICT conjointe doit être remplie :","Entièrement par le responsable de projet","Entièrement par l'exécutant des travaux","Par le responsable de projet pour le volet DT et par l'exécutant des travaux pour le volet DICT","Je ne sais pas","C",1],
+["1-1_015","DT/DICT","Si je ne fais pas la déclaration de projet de travaux (DT), je m'expose à :","Une amende pénale maximale de 15 000 euros","Un retrait de mon autorisation d'intervention à proximité des réseaux (AIPR)","Une peine d'emprisonnement maximale d'un an","Je ne sais pas","A",0],
+["1-1_016","Travaux urgents","Préalablement à des travaux urgents, je dois toujours contacter par téléphone tous les exploitants :","Mentionnés par le guichet unique","De réseaux sensibles pour la sécurité","De réseaux de transport de gaz, d'hydrocarbures ou de produits chimiques","Je ne sais pas","C",0],
+["1-1_031","Réglementation","Les dispositions réglementaires relatives à la prévention des dommages aux digues concernent :","Toutes les digues","Uniquement les digues de rivière canalisée","Les digues de prévention des inondations et des submersions","Je ne sais pas","C",0],
+["1-1_032","Réglementation","Pour un projet de travaux dans l'emprise du domaine ferroviaire, dans laquelle de ces situations une convention Études & Travaux doit être établie ?","Elagage d'arbres le long des voies","Survol d'une plateforme ferroviaire par des grues lors de la construction d'un immeuble","Installation d'une antenne GSM dans un tunnel ferroviaire","Je ne sais pas","C",0],
+["1-1_033","Réglementation","Pour un projet de travaux dans l'emprise du domaine ferroviaire (sans modification des installations), la mise en œuvre des mesures techniques par la SNCF requiert un délai de :","Moins d'1 mois","Entre 1 et 6 mois","Plus de 6 mois","Je ne sais pas","C",0],
+["1-2_001","Délais/Récépissés","De combien de jours (sauf jours fériés) dispose l'exploitant pour répondre à une DT dématérialisée ?","7","9","15","Je ne sais pas","B",0],
+["1-2_002","Délais/Récépissés","De combien de jours (sauf jours fériés) dispose l'exploitant pour répondre à une DT NON dématérialisée ?","7","9","15","Je ne sais pas","C",0],
+["1-2_003","Délais/Récépissés","Quelle information doit obligatoirement être fournie par l'exploitant sur le récépissé de DT ?","La profondeur maximale à laquelle les travaux peuvent être effectués","Les résultats des investigations complémentaires","La classe de précision des données de localisation des réseaux","Je ne sais pas","C",0],
+["1-2_004","IC","Après réception du récépissé de DT, lorsque des IC sont obligatoires, qui doit les commander ?","Le responsable de projet","L'exploitant de réseau","L'exécutant des travaux","Je ne sais pas","A",0],
+["1-2_006","IC","Après réception du récépissé de DT, laquelle de ces conditions permet d'être dispensé d'IC ?","Les travaux prévus sont des travaux sans tranchée","La zone terrassée est supérieure à 100 m²","Les travaux prévus sont situés en dehors d'une unité urbaine","Je ne sais pas","C",0],
+["1-2_007","Récolement","Pour un récolement, le maître d'ouvrage est dispensé de prestataire certifié pour un tronçon neuf :","Posé par une technique sans tranchée","Qui sera exploité par le responsable de projet","Dont le responsable de projet confiera l'exploitation à un tiers","Je ne sais pas","B",0],
+["1-2_008","IC","Un exploitant de réseau sensible fournit des plans en classe C en réponse à la DT. Le responsable de projet :","Est dispensé d'IC car l'exploitant a fourni les meilleurs plans dont il disposait","Mène des IC pour obtenir des plans en classe A","Demande à l'exploitant de réaliser des IC","Je ne sais pas","B",0],
+["1-2_009","Classe de précision","Un exploitant mentionne la classe de précision C. L'incertitude maximale de localisation est :","Inférieure ou égale à 50 cm","Inférieure ou égale à 1,5 m","Supérieure à 1,5 m","Je ne sais pas","C",0],
+["1-2_010","Classe de précision","Un exploitant mentionne la classe de précision B. L'incertitude maximale de localisation est :","Inférieure ou égale à 50 cm","Inférieure ou égale à 1,5 m","Supérieure à 1,5 m","Je ne sais pas","B",0],
+["1-2_011","Classe de précision","Un exploitant de réseau flexible mentionne la classe de précision A. L'incertitude maximale est :","Inférieure ou égale à 40 cm","Inférieure ou égale à 50 cm","Inférieure ou égale à 1,5 m","Je ne sais pas","B",0],
+["1-2_012","Classe de précision","Un exploitant de réseau rigide mentionne la classe de précision A. L'incertitude maximale est :","Inférieure ou égale à 40 cm","Inférieure ou égale à 50 cm","Inférieure ou égale à 1,5 m","Je ne sais pas","A",0],
+["1-2_013","Classe de précision","Lorsqu'un exploitant fournit des données de localisation en réunion sur site sans préciser la classe de précision, la classe à retenir est :","Toujours la classe A","La classe A si réseau sensible, B ou C sinon","La classe de précision doit toujours être précisée par l'exploitant","Je ne sais pas","C",0],
+["1-2_014","Réseaux sensibles","Parmi les réseaux suivants, un seul est classé non sensible pour la sécurité. Lequel ?","Un réseau de chaleur","Un réseau de tramway","Un réseau d'assainissement","Je ne sais pas","C",0],
+["1-2_015","Réseaux sensibles","Parmi les réseaux suivants, un seul est classé sensible pour la sécurité. Lequel ?","Un réseau de télécommunication","Un réseau électrique","Un réseau d'eau potable","Je ne sais pas","B",0],
+["1-2_017","Classe de précision","Qui est responsable de la justesse du classement A, B ou C fourni en réponse à la DT ou DICT ?","Le propriétaire du réseau concerné","L'exploitant du réseau concerné","Le prestataire certifié qui a effectué le récolement","Je ne sais pas","B",0],
+["1-2_021","IC","Après réception du récépissé de DT, le coût des IC peut être partagé entre le maître d'ouvrage et l'exploitant lorsque :","Le réseau est sensible et rangé en classe B","Le réseau est sensible et rangé en classe C","L'exploitant a répondu au-delà du délai réglementaire","Je ne sais pas","B",0],
+["1-2_023","IC","Des branchements électriques pourvus d'un affleurant visible ne sont pas cartographiés. Dispense d'IC lorsque :","Les branchements sont aéro-souterrains","Les branchements sont rattachés à un réseau principal identifié","L'affleurant est dans l'emprise des travaux","Je ne sais pas","B",0],
+["1-3_001","DT/DICT","Si le marché de travaux ne prévoit pas de clauses spécifiques, la DT est valide :","Sans limite de temps","Seulement 3 mois","Seulement 6 mois","Je ne sais pas","B",0],
+["1-3_002","Marché de travaux","Lorsque les données de localisation sont insuffisamment précises et que le maître d'ouvrage est dispensé d'IC, le marché doit mentionner :","Les précautions particulières à prévoir et la rémunération correspondante","La décharge de toute responsabilité de l'exécutant en cas de dommage","L'emploi exclusif de camions aspirateurs dans la zone d'incertitude","Je ne sais pas","A",0],
+["1-3_003","DICT","Dans le cas où un exploitant de réseau sensible ne répond pas dans le délai à la DICT et à sa relance, l'exécutant :","Ne démarre pas les travaux et ne subit pas de préjudice lié au report","Démarre les travaux après un délai complémentaire de 9 jours","Démarre les travaux en prenant les précautions prévues par le guide technique","Je ne sais pas","A",0],
+["1-3_005","Marché de travaux","La clause d'absence de préjudice pour l'entreprise s'applique à partir de quel écart entre position du réseau et marquage-piquetage ?","1 mètre","1,5 mètres","2 mètres","Je ne sais pas","B",0],
+["1-3_011","Marché de travaux","Hors unité urbaine, le maître d'ouvrage doit prévoir des clauses techniques et financières dans le marché lorsque les réseaux sont :","En classe de précision A","En classe de précision B ou C","En arrêt définitif d'exploitation","Je ne sais pas","B",0],
+["1-3_012","Marché de travaux","Hors unité urbaine, les clauses techniques et financières s'appliquent pour des réseaux en classe B ou C qui sont :","Uniquement des réseaux sensibles","Uniquement des réseaux non sensibles","Des réseaux sensibles ou non sensibles","Je ne sais pas","C",0],
+["1-4_001","Marquage-piquetage","Lorsque l'exploitant ne fournit pas de plan en réponse à la DICT, qui a la responsabilité du marquage-piquetage lors d'une réunion sur site ?","L'entreprise de travaux","Le responsable du projet","L'exploitant du réseau","Je ne sais pas","C",0],
+["1-4_002","Marquage-piquetage","Lorsque l'exploitant a joint un plan au récépissé de DICT, qui a la responsabilité d'effectuer le marquage-piquetage ?","L'entreprise de travaux","Le responsable du projet","L'exploitant","Je ne sais pas","B",1],
+["1-4_004","Marquage-piquetage","Pourquoi le compte rendu de marquage-piquetage doit être transmis à l'exécutant des travaux ?","Pour assurer la traçabilité des informations de localisation des réseaux existants","Pour permettre à l'exécutant de produire un plan projet du réseau neuf","Pour transférer à l'exécutant toute la responsabilité des travaux réalisés","Je ne sais pas","A",0],
+["1-4_005","Marquage-piquetage","Le marquage-piquetage doit être effectué pour tout réseau situé dans l'emprise des travaux augmentée de :","1,5 mètres","2 mètres","3 mètres","Je ne sais pas","B",0],
+["1-4_006","Marquage-piquetage","Qui doit maintenir en état le marquage-piquetage pendant toute la durée des travaux ?","Le service technique de la commune","L'exploitant du réseau","L'exécutant des travaux","Je ne sais pas","C",0],
+["1-4_006b","Marquage-piquetage","Pendant combien de temps faut-il maintenir en bon état le marquage-piquetage ?","Jusqu'à l'enlèvement de la couche dure de la chaussée","Jusqu'à la fin du terrassement avec les engins lourds","Pendant toute la durée du chantier","Je ne sais pas","C",0],
+["1-4_007","Marquage couleur","Sur un chantier, un marquage au sol de couleur jaune signale un réseau :","D'eaux usées","De gaz","De télécommunication","Je ne sais pas","B",0],
+["1-5_001","AIPR","Lequel de ces éléments ne permet pas la délivrance de l'AIPR ?","Un diplôme obtenu depuis plus de 5 ans","Une attestation de compétences en cours de validité","Un CACES en cours de validité prenant en compte la réforme anti-endommagement","Je ne sais pas","A",0],
+["1-5_002","AIPR","Un responsable de projet prévoit plusieurs entreprises sur un même chantier. Il doit délivrer une AIPR à au moins :","Une personne chargée de préparer et suivre le projet","Deux personnes chargées de préparer et suivre le projet","L'ensemble des personnes chargées de préparer et suivre le projet","Je ne sais pas","A",0],
+["1-5_011","AIPR","L'exploitant de réseau doit-il prévoir une AIPR concepteur pour une personne travaillant pour son compte ?","Jamais","Toujours, pour répondre aux DICT","Uniquement lorsqu'il intervient comme responsable de projet de travaux","Je ne sais pas","C",0],
+["1-6_001","Cartographie","En matière de cartographie, laquelle de ces affirmations est exacte ?","La classe de précision figure dans le récépissé de l'exploitant à une DT ou DICT","Tous les branchements gaz sont reportés sur la cartographie","Les indications sur les ouvrages enterrés sont précises à plus ou moins 40 cm","Je ne sais pas","A",0],
+["1-6_003","Topographie","En topographie, le terme planimétrie se rapporte à la localisation d'un point :","A l'horizontale","A la verticale","A l'axe du réseau","Je ne sais pas","A",0],
+["1-6_004","Topographie","La génératrice supérieure d'un réseau enterré est :","Le point le plus haut de la paroi extérieure de ce réseau ou de son fourreau","Le fil d'eau de ce réseau ou de son fourreau","L'axe central de ce réseau ou de son fourreau","Je ne sais pas","A",0],
+["1-6_005","Topographie","Le relevé des coordonnées d'un point du tracé d'un réseau enterré se fait sur :","La génératrice supérieure de ce réseau ou de son fourreau","L'axe de ce réseau ou de son fourreau","Le fil d'eau de ce réseau ou de son fourreau","Je ne sais pas","A",0],
+["1-6_011","Topographie","L'échelle d'un plan correspond à :","Le rapport entre la longueur réelle et la longueur sur le plan","La précision du plan","Le rapport entre la longueur sur le plan et la longueur réelle sur le terrain","Je ne sais pas","C",0],
+["1-6_016ce","Topographie","Lorsque la profondeur d'un réseau est marquée au sol, elle indique la profondeur :","Du fond de fouille (sous le tuyau)","De la génératrice supérieure du réseau (au-dessus du tuyau)","Du grillage avertisseur du réseau","Je ne sais pas","B",1],
+["1-6_018","Topographie","Pour une échelle de plan au 1/200, 20 mètres sur le terrain correspondent sur le plan à :","2 cm","10 cm","20 cm","Je ne sais pas","B",0],
+["1-6_027","Topographie","Pour une échelle de plan au 1/200, 1 cm sur le plan représente combien sur le terrain ?","Deux mètres","Vingt mètres","Deux cents mètres","Je ne sais pas","A",0],
+["1-6_035","Topographie","En topographie, le terme altimétrie se rapporte à la localisation d'un point :","A l'horizontale","A la verticale","A l'axe du réseau","Je ne sais pas","B",0],
+["2-1_004","DICT","Qui doit établir la DICT ?","Le maître d'ouvrage","L'exécutant des travaux","L'exploitant de réseau","Je ne sais pas","B",1],
+["2-1_005","DICT","Qui doit envoyer la DICT aux exploitants d'ouvrages ?","L'exécutant des travaux ou son Prestataire d'Aide à la Déclaration","Le téléservice du guichet unique","Le responsable de projet ou son PAD","Je ne sais pas","A",0],
+["2-1_008","DICT","Je dois réaliser des travaux à l'aplomb d'une ligne aérienne. Que faire ?","Je me réfère au récépissé de DICT et au guide technique","Je vérifie visuellement la hauteur de surplomb","J'utilise une perche graduée isolante pour mesurer la hauteur","Je ne sais pas","A",0],
+["2-2_001","DICT","Si un déclarant n'a pas reçu de réponse à sa DICT dans les délais, pour quel réseau doit-il attendre avant de commencer les travaux ?","Eclairage public","Télécommunication","Adduction d'eau","Je ne sais pas","A",1],
+["2-2_002","DICT","Après relance des exploitants n'ayant pas répondu à la DICT, je peux commencer les travaux 2 jours après sans réponse d'un exploitant :","D'un réseau de transport d'hydrocarbures","D'un réseau électrique","D'un réseau téléphonique","Je ne sais pas","C",0],
+["2-2_004","Délais/Récépissés","De combien de jours dispose l'exploitant pour répondre à une DICT dématérialisée ?","7 jours","9 jours","15 jours","Je ne sais pas","A",1],
+["2-2_005","Délais/Récépissés","De combien de jours dispose l'exploitant pour répondre à une DICT NON dématérialisée ?","7 jours","9 jours","15 jours","Je ne sais pas","B",1],
+["2-2_006","Délais/Récépissés","Suite à une relance pour non réponse à une DICT, l'exploitant doit répondre dans un délai de :","2 jours ouvrés","7 jours ouvrés","9 jours ouvrés","Je ne sais pas","A",0],
+["2-2_007","DICT","Suite à une DICT, dans quel cas les plans des réseaux peuvent ne pas être joints au récépissé ?","L'exploitant prévoit une réunion sur site","Aucun réseau sensible n'est présent dans l'emprise des travaux","Un seul réseau est présent dans l'emprise des travaux","Je ne sais pas","A",0],
+["2-2_008","DICT","Lorsque le dossier de consultation d'un marché de travaux ne contient pas les récépissés de DT, le responsable de projet :","Attribue son marché en l'état si les entreprises n'ont pas demandé ces éléments","Fait les DT en vue de transmettre leurs récépissés aux candidats avant attribution du marché","Précise que la responsabilité d'identification des réseaux est du ressort exclusif de l'exécutant","Je ne sais pas","B",0],
+["2-2_009","DICT","Je reçois l'ordre de démarrage des travaux pour lequel aucun réseau sensible n'est présent :","Je demande au maître d'ouvrage de réaliser des IC et ne démarre pas les travaux","Je démarre les travaux en appliquant les précautions prévues dans les clauses techniques et financières","Je démarre les travaux sans précaution particulière","Je ne sais pas","B",0],
+["2-2_010","Lignes électriques","Si la rubrique Distance minimale entre les travaux et la ligne électrique de la DICT est remplie, l'exploitant :","Met automatiquement la ligne hors tension","Indique les possibilités de mise hors tension ou les autres moyens de mise en sécurité","Mentionne les horaires de mise hors tension","Je ne sais pas","B",0],
+["2-2_011","Sécurité électrique","En cas d'impossibilité de mise hors tension d'une ligne électrique, les entreprises doivent :","Sous-traiter les travaux à l'exploitant","Effectuer elles-mêmes la mise hors tension","Définir avec l'exploitant les mesures pour assurer la protection des intervenants","Je ne sais pas","C",0],
+["2-2_012","Marché de travaux","Afin de préparer son offre en réponse à la consultation, l'entreprise :","N'examine pas les aspects relatifs aux réseaux, ils seront traités lors de la DICT","Procède à des investigations par sondage et marque les réseaux","Tient compte des informations du DCE au sujet des réseaux présents","Je ne sais pas","C",0],
+["2-2_014","DICT","Lorsque l'exploitant ne fournit pas de plan avec le récépissé de DICT, une réunion sur site doit-elle être organisée ?","Oui, par l'exploitant qui procède au marquage-piquetage","Oui, par le prestataire de détection certifié du responsable de projet","Non, certains exploitants sont autorisés à ne fournir aucune information","Je ne sais pas","A",0],
+["2-2_015","Marquage-piquetage","Lorsque l'exploitant ne fournit pas de plan avec le récépissé de DICT, qui doit réaliser le marquage-piquetage ?","Sous la responsabilité de l'exploitant et à ses frais","L'encadrement de chantier doit procéder à des investigations et réaliser le marquage-piquetage","Sous la responsabilité du maître d'ouvrage et à ses frais","Je ne sais pas","A",0],
+["2-2_017","Classe de précision","Sur ce schéma, le réseau jaune est en :","Classe A","Classe B","Classe C","Je ne sais pas","C",0],
+["2-2_018","Classe de précision","Sur ce schéma, le réseau jaune est en :","Classe A","Classe B","Classe C","Je ne sais pas","B",0],
+["2-2_019","Classe de précision","Sur ce schéma, le réseau jaune est en :","Classe A","Classe B","Classe C","Je ne sais pas","A",0],
+["2-2_020","Classe de précision","Sur ce schéma, le réseau jaune est en :","Classe A","Classe B","Classe C","Je ne sais pas","A",0],
+["2-2_022","Réseaux","Comment savoir qu'il existe dans l'emprise des travaux des branchements électriques ou de gaz non cartographiés et sans affleurant visible ?","En adressant au préalable une demande écrite à la mairie","En allant chercher l'information sur le site internet des exploitants","L'exploitant doit le mentionner dans les plans joints au récépissé","Je ne sais pas","C",0],
+["2-3_003","Sécurité électrique","Que dois-je faire si je découvre un câble électrique dénudé ?","Je mets des lunettes de protection","Je m'écarte tout de suite de la zone","Je dégage le câble en évitant de le toucher","Je ne sais pas","B",0],
+["2-3_004","AIPR","À compter du 1er janvier 2018, une entreprise exécutant des travaux non urgents doit délivrer une AIPR :","Uniquement à l'encadrant des travaux","A l'encadrant des travaux et aux conducteurs d'engins","Uniquement aux conducteurs d'engins","Je ne sais pas","B",1],
+["2-3_011","Sécurité réseaux","Quels sont les risques principaux liés à un réseau d'assainissement ?","Asphyxie et intoxication","Electrisation et électrocution","Hydrocution et noyade","Je ne sais pas","A",0],
+["2-3_013e","Sécurité gaz","Pendant toute la durée de travaux à proximité d'un réseau de gaz, il faut dans tous les cas :","Maintenir les accès aux vannes d'arrêt","Interdire tout matériel électrique","Porter un masque respiratoire","Je ne sais pas","A",1],
+["2-3_015e","Terrassement","Un conducteur d'engin peut démarrer le terrassement dès qu'il a les informations sur :","L'ouvrage souterrain sur lequel il doit travailler","Les réseaux dangereux situés dans la zone de travail (gaz, électricité)","Tous les ouvrages souterrains signalés par le marquage-piquetage","Je ne sais pas","C",1],
+["2-3_018","Topographie","La profondeur d'un réseau souterrain se mesure à partir :","Du dessus de l'ouvrage","Du dessous de l'ouvrage","De l'axe de l'ouvrage","Je ne sais pas","A",0],
+["2-3_019","Distances sécurité","Sans protection particulière, l'écart minimum entre un câble électrique et une canalisation de gaz est de :","10 cm","15 cm","20 cm","Je ne sais pas","C",0],
+["2-3_020","Sécurité électrique","Pour ouvrir un coffret électrique, il faut avoir l'habilitation électrique et l'accord :","De l'exploitant","Du chef de chantier","Du maître d'ouvrage","Je ne sais pas","A",0],
+["2-3_023","Réseaux eau","Les butées en béton des canalisations d'eau doivent être préservées car elles servent à :","Assembler les canalisations","Eviter que la pression ne déplace les canalisations","Protéger du gel","Je ne sais pas","B",0],
+["2-3_023b","Réseaux","La protection cathodique des canalisations en acier doit être préservée car elle sert à protéger :","Des incendies","De la corrosion","Du gel","Je ne sais pas","B",0],
+["2-3_025","Remblai","Lorsqu'une tranchée est remblayée mais pas encore compactée, peut-on rouler au-dessus du réseau ?","Si le sol est totalement sec","Si l'écart de niveau entre remblaiement et sol fini ne dépasse pas 15 cm","En aucun cas de figure","Je ne sais pas","C",0],
+["2-3_026","Affleurants","Lequel de ces éléments est un affleurant indiquant la présence d'un réseau sous la chaussée ?","Panneau de signalisation routière","Bouche à clé","Bordure de trottoir","Je ne sais pas","B",0],
+["2-3_027","Affleurants","Lequel de ces éléments est un affleurant indiquant la présence d'un réseau sous le trottoir ?","Potelet de signalisation","Coffret de gaz","Bordure de trottoir","Je ne sais pas","B",1],
+["2-3_016","Terrassement","Lorsque le réseau annoncé et marqué n'a pas été trouvé dans l'emprise des travaux, peut-on creuser en dehors de cette emprise ?","Oui, dans l'environnement immédiat (moins de 3 mètres)","Oui, lorsqu'aucun élément ne signale de réseau","Non","Je ne sais pas","C",0],
+["2-4_002","Lignes électriques","Si l'on ne connaît pas la tension de la ligne électrique, le godet doit se trouver toujours à plus de :","1 mètre","2 mètres","5 mètres","Je ne sais pas","C",1],
+["2-4_003","Lignes électriques","Quand je travaille près d'une ligne aérienne à très haute tension (plus de 50 000 V), je dois rester à plus de 5 mètres :","Du fil électrique le plus proche","Du sol","Du pylône","Je ne sais pas","A",0],
+["2-4_004","Lignes électriques","Quand je travaille près d'une ligne aérienne haute tension, le godet doit toujours se trouver à plus de :","3 mètres","5 mètres","7 mètres","Je ne sais pas","B",0],
+["2-4_007","Distances sécurité","Avec une pelle hydraulique (précision 0,15 m), jusqu'à quelle distance du marquage d'un réseau rigide de classe A peut-on terrasser sans précaution ?","0,40 + 0,15 = 0,55 m","0,40 m","0,40 - 0,15 = 0,25 m","Je ne sais pas","A",0],
+["2-4_008","Distances sécurité","Avec une pelle hydraulique (précision 0,15 m), jusqu'à quelle distance du marquage d'un réseau souple de classe A peut-on terrasser sans précaution ?","0,50 - 0,15 = 0,35 m","0,50 m","0,50 + 0,15 = 0,65 m","Je ne sais pas","C",0],
+["2-4_009","Terrassement","Au dessus d'un réseau, on peut utiliser un engin lourd :","Jusqu'à la découverte du grillage avertisseur","Pour enlever la couche de surface dure","Jusqu'à 10 cm du réseau enterré","Je ne sais pas","B",0],
+["2-4_010","DT/DICT","Le remplacement d'un potelet sans élargissement de la fouille est dispensé de DT et DICT lorsqu'il s'effectue :","A moins de 70 cm de profondeur et à plus d'1 m de tout affleurant","A moins de 40 cm de profondeur et à plus de 50 cm de tout affleurant","A moins de 40 cm de profondeur et à plus d'1 m de tout affleurant","Je ne sais pas","C",0],
+["2-4_011","Terrassement","Je dois poser un branchement d'eau dans la zone d'incertitude d'un réseau de gaz existant. Je peux employer :","Une fusée non guidée à partir d'un regard existant","Un marteau piqueur pour la surface, puis un camion aspirateur, une pioche à air ou une pelle à main","Une mini-pelle jusqu'au grillage avertisseur jaune, puis un camion aspirateur","Je ne sais pas","B",0],
+["2-4_012","Camion aspirateur","J'utilise un camion aspirateur équipé d'un jet haute pression près d'un réseau. Que puis-je faire ?","Mettre l'embout d'aspiration en contact avec le réseau","Mettre le jet d'air ou d'eau haute pression en contact avec le réseau","Approcher le jet d'air ou d'eau haute pression jusqu'à 5 cm du réseau","Je ne sais pas","C",0],
+["2-4_014","Camion aspirateur","Lors de l'utilisation d'un camion aspirateur à proximité d'un réseau, le jet peut être utilisé :","Sans être dirigé directement sur l'ouvrage","Comme une barre à mine","A moins de 5 cm de l'ouvrage","Je ne sais pas","A",0],
+["2-4_019ce","Mini-pelle","Dans quel cas le conducteur d'engin peut utiliser une mini-pelle en avancement pas à pas ?","S'il est aidé d'un suiveur","S'il voit le grillage avertisseur","S'il a une bonne visibilité devant son godet","Je ne sais pas","A",0],
+["2-4_021","Terrassement","En creusant dans une zone où aucun réseau n'est signalé, je rencontre un remblai différent. Que dois-je faire ?","Je continue à creuser","Je change le tracé","Je continue avec un outil manuel","Je ne sais pas","C",0],
+["2-4_022","Terrassement","Lors de la pose d'un nouveau réseau, je découvre un bloc de béton :","J'utilise un BRH pour le casser","Je décide de changer le tracé","Je demande les consignes","Je ne sais pas","C",0],
+["2-4_023","Distances sécurité","Je pose un réseau de gaz. Quel doit être l'écart minimum avec le réseau électrique existant ?","20 cm","5 cm","40 cm","Je ne sais pas","A",0],
+["2-4_024","Sécurité chantier","Pendant combien de temps peut-on entreposer des déblais sur une bouche à clé ?","Une demi-journée maximum","Une heure maximum","Jamais","Je ne sais pas","C",0],
+["2-4_025ce","Distances sécurité","Quelle distance minimale de précaution de part et d'autre du marquage quand on creuse à côté d'un branchement de gaz non visible sur le plan ?","0,5 m","1,0 m","1,5 m","Je ne sais pas","B",1],
+["2-4_028","Guide technique","Où peut-on trouver les fiches du guide technique mentionnées dans le récépissé d'une DT ou DICT ?","Elles sont obligatoirement jointes par l'exploitant au récépissé de DICT","Elles sont téléchargeables sur le site du guichet unique www.reseaux-et-canalisations.gouv.fr","Elles sont téléchargeables sur le site internet de l'exploitant","Je ne sais pas","B",0],
+["2-4_030ce","Grillage avertisseur","En creusant, le conducteur a abîmé le grillage avertisseur d'un réseau existant. Que doit-il faire ?","Remettre les morceaux dans la fouille","Remplacer par n'importe quel grillage disponible","Remplacer par un grillage de même couleur","Je ne sais pas","C",0],
+["2-4_031","Réseaux gaz","Quels sont les éléments des réseaux de gaz les plus souvent endommagés lors des travaux ?","Les réseaux principaux","Les accessoires (vannes, coffrets…)","Les branchements","Je ne sais pas","C",0],
+["2-4_032ce","Terrassement","En terrassant dans une zone marquée de couleur rose, on s'attend à trouver :","Uniquement un réseau électrique","Plusieurs réseaux différents, proches les uns des autres","Uniquement un réseau d'assainissement","Je ne sais pas","B",0],
+["2-4_033","Distances sécurité","Lors d'un terrassement, pour déterminer la distance de précaution autour du marquage d'un réseau, il faut :","Cumuler le fuseau d'imprécision du réseau et le fuseau d'imprécision de l'outil","Retenir la plus grande distance entre les deux fuseaux","Doubler le fuseau d'imprécision du réseau","Je ne sais pas","A",0],
+["2-4_035e","Terrassement","Lorsque la canalisation à dégager est noyée dans une couche dure (béton, enrobé...), que dois-je faire ?","Je sous-traite les travaux à une autre entreprise","Je la fais dégager avec des outils manuels (pioche, barre à mine…)","J'alerte l'exploitant pour qu'il prenne les mesures nécessaires","Je ne sais pas","C",0],
+["2-4_036","Distances sécurité","Laquelle de ces situations est autorisée ?","Utiliser une trancheuse à 1,10 m du marquage d'un réseau enterré de classe A","Utiliser un BRH à 0,30 m du marquage d'un réseau flexible de classe A","Utiliser une mini-pelle à 0,50 m du marquage d'un branchement de gaz en classe B","Je ne sais pas","A",0],
+["2-4_0037","Distances sécurité","Laquelle de ces situations est acceptable ?","J'utilise une trancheuse à 1,40 m du marquage d'un réseau enterré de classe B","J'utilise une tarière de 20 cm de diamètre à 1,20 m du marquage d'un réseau de classe B","J'utilise un BRH à 80 cm du marquage d'un réseau flexible de classe A","Je ne sais pas","C",0],
+["2-4_038","DT/DICT","Pour un curage de fossés avec reprofilage à proximité de réseaux enterrés, la DICT est obligatoire :","Si le fossé est en zone urbaine","Si la profondeur de curage est supérieure à 40 cm","Dans tous les cas","Je ne sais pas","C",0],
+["2-4_041","Trancheuse","Lors de l'utilisation d'une trancheuse, la distance de sécurité à respecter est :","L'incertitude la plus grande entre réseau et outil","Le double de l'incertitude de l'ouvrage","L'incertitude de l'ouvrage + l'incertitude de l'outil","Je ne sais pas","C",0],
+["2-4_042","Vibrations","Quels ouvrages sont les plus sensibles aux vibrations générées par le BRH ?","Les réseaux électriques basse tension","Les réseaux flexibles","Les canalisations de transport","Je ne sais pas","C",0],
+["2-5_003ce","Grillage avertisseur","Lors d'un terrassement au-dessus d'une canalisation, le grillage avertisseur risque d'être absent :","Lorsque la canalisation est classée non sensible (assainissement par exemple)","Lorsque la canalisation est flexible","Pour tous les types de canalisation","Je ne sais pas","C",1],
+["2-5_005","Affleurants","Je vais creuser dans une zone sans marquage au sol et je vois un coffret sur un mur :","Je ne commence pas à creuser","Je l'ouvre pour connaître la direction du branchement","Je commence à creuser","Je ne sais pas","A",0],
+["2-5_006","Affleurants","Je vais creuser dans une zone sans marquage à proximité d'un bâtiment :","J'ouvre la porte pour connaître les réseaux et leurs directions","Je creuse en faisant attention","Je demande une vérification des réseaux et de leur emplacement","Je ne sais pas","C",0],
+["2-5_007","Terrassement","Lorsqu'un affleurant (coffret…) montre l'existence d'un branchement souterrain, comment le prendre en compte ?","Le branchement se trouve forcément sur le chemin le plus court vers le réseau principal","J'applique des précautions particulières dans une bande de 2 m centrée sur le marquage","J'ouvre l'affleurant pour connaître la direction du branchement","Je ne sais pas","B",0],
+["2-5_008","Marquage couleur","En creusant, je rencontre un grillage avertisseur jaune. Il signale un réseau :","D'électricité","De téléphone","De gaz","Je ne sais pas","C",0],
+["2-5_009","Marquage couleur","En creusant, je rencontre un grillage avertisseur rouge. Il signale un réseau :","D'électricité","De téléphone","De gaz","Je ne sais pas","A",0],
+["2-5_010","Marquage couleur","En creusant, je rencontre un grillage avertisseur vert. Il signale un réseau :","D'électricité","De télécommunication","D'eau potable","Je ne sais pas","B",0],
+["2-5_011","Marquage couleur","En creusant, je rencontre un grillage avertisseur marron. Il signale un réseau :","D'eau potable","D'eaux usées ou pluviales","De gaz","Je ne sais pas","B",0],
+["2-5_012","Marquage couleur","En creusant, je rencontre un grillage avertisseur bleu. Il signale un réseau :","D'eau potable","D'eaux usées ou pluviales","D'électricité","Je ne sais pas","A",0],
+["2-5_013","Marquage couleur","En creusant, je rencontre un grillage avertisseur violet. Il signale un réseau :","De chaleur","D'eaux usées ou pluviales","D'électricité","Je ne sais pas","A",0],
+["2-5_015","Grillage avertisseur","En creusant, je découvre un grillage avertisseur. La canalisation :","Peut se trouver immédiatement sous le grillage","Se situe au minimum à 20 cm sous le grillage","Se situe au minimum à 40 cm sous le grillage","Je ne sais pas","A",0],
+["2-5_016","Affleurants","Ce coffret est un affleurant de réseau de :","Gaz","Eau potable","Electricité","Je ne sais pas","A",0],
+["2-5_017","Affleurants","Ce coffret est un affleurant de réseau :","De gaz","D'eau potable","Electrique","Je ne sais pas","C",0],
+["2-5_018","Affleurants","Ce coffret est un affleurant de réseau :","De gaz","D'eau potable","De télécommunication","Je ne sais pas","C",0],
+["2-5_019","Affleurants","Ces deux types de bornes signalent un réseau :","De gaz","Postal","D'hydrocarbures","Je ne sais pas","A",0],
+["2-5_020","Affleurants","Ces repères indiquent un réseau :","De distribution de gaz","De transport de gaz","D'hydrocarbures","Je ne sais pas","B",0],
+["2-5_021","Affleurants","Quel type de réseau est relié à ce bâtiment ?","Assainissement","Gaz","Electrique","Je ne sais pas","C",0],
+["2-5_022","Grillage avertisseur","Lors d'un terrassement, on découvre un grillage avertisseur coloré. Celui-ci indique :","La présence d'un réseau ainsi que sa nature","Un tunnel du métro ou de la SNCF","Une zone de recherche archéologique protégée","Je ne sais pas","A",0],
+["2-5_023","Réseaux","Ce tuyau est utilisé pour la distribution :","Des eaux usées","Des eaux pluviales","De l'eau potable","Je ne sais pas","C",0],
+["2-5_024","Réseaux","Ce tuyau est utilisé pour la distribution :","Du gaz","Des eaux usées","Des eaux pluviales","Je ne sais pas","A",0],
+["2-5_025","Terrassement","En creusant, je découvre un tuyau entièrement noir en polyéthylène :","J'arrête de creuser, c'est peut-être un réseau sensible","Je continue sans précaution, ce type de tuyau transporte de l'eau","Je le retire, c'est une canalisation ancienne hors service","Je ne sais pas","A",0],
+["2-5_026","Sécurité électrique","En creusant, j'aperçois un câble en cuivre nu. Est-ce que je risque un choc électrique ?","Oui, si je le touche","Non, car il est nu","Non, c'est un câble de mise à la terre","Je ne sais pas","A",0],
+["2-5_031","Réseau non signalé","Lors de la découverte d'un branchement non cartographié situé en dehors de la zone de précaution :","Les travaux peuvent être poursuivis","L'emplacement doit être signalé à l'exploitant et les travaux peuvent être poursuivis","Les travaux doivent être arrêtés et l'exploitant doit être contacté","Je ne sais pas","C",0],
+["2-6_001","Travaux sans tranchée","Si je dois utiliser une fusée à 20 cm du fuseau d'une canalisation non visible, je dois utiliser une fusée :","Non-localisable","Localisable sans affût","Localisable avec affût","Je ne sais pas","C",1],
+["2-6_002","Travaux sans tranchée","Lors de travaux sans tranchée avec fusée pneumatique, la trajectoire de la fusée doit être surveillée :","Au lancement","A la fin du parcours","Durant tout le parcours","Je ne sais pas","C",0],
+["2-6_003","Travaux sans tranchée","Lors de travaux avec fusée à proximité d'un réseau, à partir de quel diamètre l'utilisation d'un dispositif de localisation est obligatoire ?","80 mm","120 mm","160 mm","Je ne sais pas","B",0],
+["2-6_004","Travaux sans tranchée","A quelle distance du fuseau d'une canalisation non visible je peux passer avec une fusée localisable de 100 mm de diamètre ?","20 cm","30 cm","40 cm","Je ne sais pas","C",0],
+["2-6_005","Travaux sans tranchée","Je peux utiliser un outil de découpe pour un branchement plomb de 40 mm lorsque :","Je ne connais pas le tracé du branchement","Le branchement est rectiligne et longe le fuseau d'incertitude d'une canalisation à plus de 20 cm","Le branchement est rectiligne et longe le fuseau d'incertitude d'une canalisation à plus de 10 cm","Je ne sais pas","B",0],
+["2-6_008","Travaux sans tranchée","Je peux extraire un branchement par traction lorsque :","Le branchement est rectiligne et croise une canalisation à 30 cm","Le câble de traction n'est pas dans l'alignement du branchement","Le branchement n'est pas rectiligne et croise une canalisation à 30 cm","Je ne sais pas","A",0],
+["2-6_013","Travaux sans tranchée","La technique d'éclatement d'une canalisation peut être utilisée lorsque :","Je contrôle en permanence la position de l'outil","La canalisation non sensible la plus proche est à 20 cm de la canalisation éclatée","La canalisation sensible la plus proche est à 20 cm de la canalisation éclatée","Je ne sais pas","A",0],
+["2-6_015","Travaux sans tranchée","Lors de travaux sans tranchée, lorsque les plans ne sont pas en classe A, une réunion sur site est obligatoire si les travaux sont à proximité d'un réseau :","De distribution de gaz","Electrique","D'eau","Je ne sais pas","A",0],
+["2-6_016","Travaux sans tranchée","Pour des travaux sans tranchée, les distances minimales réglementaires entre la trajectoire de l'outil et les fuseaux des ouvrages sont définies dans :","Le compte-rendu de marquage-piquetage","Le guide technique","Le marché de travaux","Je ne sais pas","B",0],
+["3-1_002","Réseau non signalé","Si en cours de chantier, l'opérateur découvre un réseau sans marquage susceptible de gêner les travaux, que doit-il faire ?","Arrêter immédiatement les travaux et en référer au responsable de projet","Compléter le marquage et continuer les travaux","Couper la canalisation car elle est probablement abandonnée","Je ne sais pas","A",1],
+["3-1_005","Réseau non signalé","Suite à la découverte d'un réseau non identifié nécessitant un constat d'arrêt de travaux, celui-ci est signé par l'exécutant ainsi que par :","L'exploitant du réseau concerné","Le responsable de projet","L'inspecteur du travail","Je ne sais pas","B",0],
+["3-1_006","Réseau non signalé","Quand je découvre un réseau non identifié en creusant dans une zone sans marquage, que dois-je faire ?","Informer tout de suite mon chef et attendre ses consignes","Reboucher aussitôt le trou","Continuer car le réseau ne doit plus être en service","Je ne sais pas","A",0],
+["3-1_007e","Réseau non signalé","Dans une tranchée, un câble électrique mal placé gêne le chantier :","Je suspends les travaux aux abords du câble","Je mets des gants isolants et je le déplace à la main","Je le déplace légèrement avec l'engin","Je ne sais pas","A",0],
+["3-1_010","Réseau non signalé","Lors de travaux, je découvre un réseau qui présente un écart notable de localisation mettant en cause la poursuite du chantier. Que dois-je faire ?","Je poursuis le chantier en prenant des mesures de sécurité puis informe le maître d'ouvrage","J'arrête les travaux, j'alerte le responsable de projet et j'attends sa décision écrite","Je contacte directement l'exploitant qui doit immédiatement mettre le réseau en sécurité","Je ne sais pas","B",0],
+["3-2_003","Endommagement","Le remplissage d'un constat contradictoire en cas de dommage est fait conjointement par :","L'entreprise exécutant les travaux et l'exploitant du réseau concerné","L'entreprise exécutant les travaux et le responsable de projet","Le responsable de projet et l'exploitant de réseau","Je ne sais pas","A",0],
+["3-2_004ce","Endommagement gaz","En cas d'endommagement d'un réseau de gaz, indiquez la consigne qui ne fait pas partie de la règle des 4A :","Accueillir les secours","Alerter les pompiers","Arrêter la fuite","Je ne sais pas","C",0],
+["3-2_005","Endommagement gaz","Un opérateur a touché une canalisation de gaz avec le godet provoquant une légère éraflure. Que faire ?","Entourer la conduite d'un adhésif résistant","Arrêter les travaux dans la zone et contacter l'exploitant ainsi que le responsable de projet","Continuer le travail car la canalisation est protégée par la protection cathodique","Je ne sais pas","B",1],
+["3-2_008","Endommagement gaz","J'ai heurté une canalisation de gaz avec une mini-pelle sans provoquer de fuite :","Je continue le chantier, les canalisations résistent aux chocs légers","Je rebouche la tranchée sans rien dire","J'arrête tout de suite les travaux","Je ne sais pas","C",0],
+["3-2_009","Endommagement gaz","En cas d'endommagement d'une canalisation de gaz avec fuite, en tant qu'encadrant, j'alerte dans l'ordre :","Les pompiers, l'exploitant, le responsable de projet","L'exploitant, la police, les pompiers","Le responsable de projet, le 112, l'exploitant","Je ne sais pas","A",0],
+["3-2_010e","Endommagement gaz","En cas d'endommagement d'une canalisation de gaz avec fuite, il faut alerter dans l'ordre :","Les pompiers puis l'exploitant","L'exploitant puis les pompiers","L'exploitant puis le guichet unique","Je ne sais pas","A",0],
+["3-2_011","Secours","Suite à un accident, j'appelle les pompiers. Je peux raccrocher dès que :","J'ai indiqué la nature et le lieu de l'accident","J'ai fourni le nombre de victimes et leur nom","Le pompier me le demande","Je ne sais pas","C",0],
+["3-2_012","Endommagement gaz","Une pelle a heurté une canalisation de gaz qui s'est enflammée. Après la règle des 4A, il faut :","Essayer d'éteindre la flamme","Essayer de fermer la vanne","Laisser brûler","Je ne sais pas","C",0],
+["3-2_013","Sécurité électrique","Une personne prend une décharge électrique et reste en contact avec le câble. J'appelle en tout premier :","Les pompiers","L'exploitant","Le responsable de projet","Je ne sais pas","A",0],
+["3-2_014","Sécurité électrique","Je viens de prendre une décharge électrique, mais ça a l'air d'aller. Que dois-je faire ?","Rien de particulier, je continue mon travail","J'en parle à un collègue pour qu'il me surveille","Je préviens tout de suite mon chef","Je ne sais pas","C",0],
+["3-2_015ce","Endommagement gaz","En cas d'endommagement d'une canalisation de gaz avec fuite, la règle des 4A signifie :","Alerter, Agir, Aménager, Accompagner","Avertir, Arranger, Arrêter, Accueillir","Arrêter, Alerter, Aménager, Accueillir","Je ne sais pas","C",1],
+["3-2_016","Endommagement gaz","En cas d'accident sur une conduite de gaz, que faut-il faire après avoir prévenu les secours ?","Aménager un périmètre de sécurité et éloigner les passants","Partir au plus vite","Colmater la fuite avec le godet de la pelle","Je ne sais pas","A",0],
+["3-2_017e","Lignes électriques","La nacelle que l'opérateur manœuvre entre en contact avec une ligne aérienne et il n'arrive pas à la décrocher :","Je lui dis de descendre immédiatement de sa nacelle","J'arrête le moteur et je lui dis de descendre","Je lui dis d'arrêter le moteur, de rester dans sa nacelle et d'attendre les secours","Je ne sais pas","C",0],
+["3-2_018e","Lignes électriques","Si une pelle mécanique touche et reste en contact avec une ligne électrique, je dis à l'opérateur :","D'essayer d'écarter sa pelle de la ligne et de rester dans sa cabine","D'attendre une minute puis de descendre de l'engin","De couper le moteur et de descendre de l'engin","Je ne sais pas","A",0],
+["3-2_024","Endommagement gaz","Je constate une légère atteinte du revêtement d'une canalisation de transport de gaz naturel. Que faire ?","Je recouvre la canalisation","Je procède à la réparation ponctuelle et je poursuis les remblais","Je le signale immédiatement à l'exploitant","Je ne sais pas","C",0],
+["3-2_025","Endommagement gaz","Au cours du chantier, je vois des traces de choc sur une canalisation de gaz :","J'arrête tout de suite les travaux et j'avertis mon chef","Je vérifie qu'il n'y a pas de fuite et je poursuis le travail","Je colmate les traces et je poursuis le travail","Je ne sais pas","A",0],
+["3-2_026","Endommagement gaz","En cas de choc sur le revêtement d'une canalisation de transport de gaz :","Aucune fuite n'est possible","S'il y a une fuite, elle est détectable immédiatement","Une fuite peut survenir immédiatement ou plus tard","Je ne sais pas","C",0],
+["3-2_027","Endommagement réseau","En creusant, j'arrache un tuyau en grès qui transporte les eaux usées. Que dois-je faire ?","Je le remplace par un manchon PVC","Je le repositionne et vérifie l'étanchéité","J'arrête les travaux et j'attends les consignes","Je ne sais pas","C",0],
+["3-3_001","Sécurité gaz","Lors d'une fuite d'une canalisation de gaz, les personnes à proximité sont exposées à un risque :","De brûlure","De fièvre","D'eczéma","Je ne sais pas","A",0],
+["3-3_003","Sécurité gaz","Suite à un choc sur une canalisation de gaz, je considère :","Qu'il n'y a pas de risque s'il n'y a pas d'odeur de gaz","Qu'il n'y a pas de risque s'il n'y a pas de sifflement","Qu'il y a toujours un risque","Je ne sais pas","C",0],
+["3-3_004","Sécurité électrique","Dans le cas de contact avec un fil électrique nu, la personne concernée risque la mort par :","Electrocution","Intoxication","Asphyxie","Je ne sais pas","A",0],
+["3-3_005","Sécurité électrique","Lors d'un contact avec un conducteur électrique isolé endommagé, la personne concernée risque :","Seulement l'électrisation","Seulement une brûlure","L'électrisation et une brûlure","Je ne sais pas","C",0],
+["3-3_007","Terrassement","Je dois dégager une canalisation, mais je ne connais pas sa profondeur. Après avoir cassé la surface dure, je peux utiliser :","Un marteau piqueur","Un camion aspirateur","Une mini-pelle","Je ne sais pas","B",0],
+["3-3_008","Terrassement","Je dois creuser à proximité d'un ouvrage, mais je ne connais pas sa profondeur. Lequel de ces outils est interdit ?","Pioche à air","Camion aspirateur","Trancheuse","Je ne sais pas","C",0],
+["3-3_010","Distances sécurité","Lors de l'utilisation d'un godet de pelle mécanique à proximité d'un réseau enterré, la distance de sécurité à respecter est :","L'incertitude de l'ouvrage + l'incertitude de l'outil","L'incertitude la plus grande entre l'incertitude de l'ouvrage et l'incertitude de l'outil","Le double de l'incertitude de l'outil","Je ne sais pas","A",0],
+["3-3_011","Réseau non signalé","En creusant, je découvre à l'endroit où je devais poser un réseau d'eau potable, un réseau non signalé par le marquage-piquetage :","Je peux continuer à creuser en évitant de toucher le réseau découvert","Je pose le nouveau réseau au-dessus du réseau découvert","J'arrête de creuser pour faire identifier le réseau découvert","Je ne sais pas","C",0],
+["3-3_014ce","Sécurité chantier","Pour être sûr que l'exploitant puisse couper le réseau en cas d'incident, l'exécutant doit :","Veiller à ce que les dispositifs de coupure dans l'emprise restent accessibles pendant tous les travaux","S'assurer régulièrement du bon fonctionnement des dispositifs de coupure","Demander à l'exploitant de vérifier régulièrement les dispositifs de coupure","Je ne sais pas","A",0],
+["3-3_015","Sécurité chantier","En tant qu'exécutant des travaux, je dois pendant toute la durée du chantier :","Conserver un exemplaire du récépissé de DT sur le chantier","Conserver un exemplaire du récépissé de DICT sur le chantier","Conserver un exemplaire du marché de travaux sur le chantier","Je ne sais pas","B",0],
+["3-3_016","Terrassement","Je dois intervenir sur un branchement gaz enterré sous un trottoir. Pour dégager la surface dure, je peux utiliser :","Un marteau piqueur","Une scie circulaire réglée à 30 cm de profondeur maximum","Une trancheuse réglée à 30 cm de profondeur maximum","Je ne sais pas","A",0],
+["3-3_017","Terrassement","Lors d'un terrassement, où risque-t-on de trouver un branchement posé sans tranchée et donc sans grillage avertisseur ?","Uniquement sous les trottoirs","Seulement sous une route","C'est toujours possible","Je ne sais pas","C",0],
+["3-3_018e","Marquage-piquetage","On me confie des travaux de terrassement dans une zone sans marquage-piquetage. Que dois-je faire ?","Je vérifie l'absence de réseau sur les récépissés de DICT","Je peux creuser, car il n'y a pas de réseau","J'appelle les pompiers","Je ne sais pas","A",0],
+["3-3_019","Distances sécurité","Lorsque la zone d'incertitude d'un réseau n'est pas indiquée par le marquage, je considère que sa largeur de part et d'autre est de :","0,5 m","2 m","1,5 m","Je ne sais pas","C",0],
+["3-3_020","Sécurité chantier","A proximité d'un regard, le réseau :","Peut être à une profondeur de moins de 20 cm","Est à une profondeur d'au moins 40 cm","Est à une profondeur d'au moins 80 cm","Je ne sais pas","A",0],
+["3-3_023ce","Classe de précision","Quand un réseau flexible en classe A est indiqué sur le plan à 70 cm de profondeur, à partir de quelle profondeur peut-il se trouver en réalité ?","20 cm","40 cm","60 cm","Je ne sais pas","A",1],
+["3-3_024","Distances sécurité","Je creuse à proximité d'un réseau rigide en classe A. A partir de quelle distance du marquage dois-je prendre des précautions ?","40 cm","80 cm","1,5 m","Je ne sais pas","A",0],
+["3-3_024b","Distances sécurité","Je creuse à proximité d'un réseau en classe B. A partir de quelle distance du marquage dois-je prendre des précautions ?","40 cm","80 cm","1,5 m","Je ne sais pas","C",0],
+["3-3_025","Réseaux","Un tuyau noir :","Est toujours une canalisation d'eau","Est nécessairement une canalisation d'eau ou de gaz","Peut être n'importe quel type de réseau","Je ne sais pas","C",0],
+["3-3_026","Réseaux","Une seule de ces affirmations est vraie, laquelle ?","Les canalisations de gaz existantes sont toujours à au moins 80 cm sous chaussée","Les réseaux et branchements neufs doivent toujours être cartographiés en classe A","Les branchements électriques et de gaz sont toujours identifiables grâce à un affleurant visible","Je ne sais pas","B",0],
+["3-3_027","Camion aspirateur","Lors d'un terrassement par aspiration, pour décompacter le sol, j'utilise de préférence :","Une barre à mine","Une pioche à air","Un marteau piqueur","Je ne sais pas","B",0],
+["3-3_028","Sécurité électrique","Une seule des affirmations suivantes est vraie. Laquelle ?","Le risque électrique existe en absence de contact","Un câble électrique couché au sol est sans danger","On peut déplacer un câble électrique non isolé avec des gants isolants","Je ne sais pas","A",0],
+["3-3_030","Sécurité chantier","Lorsqu'un engin écrase une borne de signalisation, dans quel cas faut-il le signaler à son chef ?","Seulement si on ne voit plus l'inscription sur la borne","Seulement si la borne est renversée et/ou totalement cassée","Dans tous les cas","Je ne sais pas","C",0],
+["3-3_031","Terrassement","Je dois raccorder un branchement d'eau au réseau, mais il y a deux canalisations d'apparences identiques. Que dois-je faire ?","Je réalise le branchement sur la canalisation la plus proche","Je réalise le branchement sur la canalisation la plus accessible","J'attends qu'on m'indique avec certitude la canalisation à utiliser","Je ne sais pas","C",0],
+["3-3_033","Sécurité chantier","Je dois intervenir dans l'enceinte d'une usine chimique pour réhabiliter le réseau d'eaux pluviales. Aucun réseau n'est indiqué par le guichet unique. Je démarre les travaux :","Car le réseau d'eaux pluviales n'est pas sensible","Car j'ai suffisamment d'éléments suite à la consultation du guichet unique","Dès que le responsable de l'usine m'a fourni les plans et les consignes particulières","Je ne sais pas","C",0],
+["3-3_034","Réseaux sensibles","Parmi les réseaux suivants, lesquels sont considérés comme non sensibles pour la sécurité ?","Les réseaux de chaleur","Les installations de communication électronique","Les lignes électriques","Je ne sais pas","B",0],
+["3-3_035","Sécurité électrique","Lorsqu'un engin entre en contact avec une ligne électrique, qui ne risque rien ?","L'ouvrier qui touche la benne preneuse","L'ouvrier qui marche vers l'engin","Le conducteur de l'engin, s'il reste dans la cabine","Je ne sais pas","C",0],
+["3-3_037","Sécurité chantier","Comment sortir de cette tranchée ?","En grimpant par le talus côté remblai","En mettant en place une échelle","En montant sur les différentes canalisations","Je ne sais pas","B",0],
+["3-3_041","Sécurité électrique","Quelle affirmation est juste ?","Je risque l'électrisation si je touche une branche en contact avec une ligne aérienne à conducteurs nus","Lorsque je suis dans le panier de la nacelle, l'électrisation est impossible car je ne suis pas en contact avec le sol","Pour être électrisé, il faut obligatoirement toucher directement la ligne","Je ne sais pas","A",0],
+["2-5_004","Affleurants","Laquelle de ces bornes signale un réseau enterré sensible pour la sécurité ?","A","B","C","Je ne sais pas","C",0]
+];
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+let session=[],cur=0,score=0,answered=[],penalties=0,correct_count=0,wrong_count=0;
+
+function buildSession(){
+  const pool=shuffle([...RAW]);
+  session=pool.slice(0,40).map(q=>{
+    const letters=['A','B','C','D'];
+    const ci=letters.indexOf(q[7]);
+    const correctText=q[3+ci];
+    const opts=[q[3],q[4],q[5],q[6]];
+    shuffle(opts);
+    const newCorrect=opts.indexOf(correctText);
+    return{id:q[0],tag:q[1],text:q[2],opts,correct:newCorrect,prio:q[8]};
+  });
+}
+
+function startQuiz(){
+  buildSession();
+  cur=0;score=0;answered=[];penalties=0;correct_count=0;wrong_count=0;
+  document.getElementById('screen-welcome').style.display='none';
+  document.getElementById('screen-score').style.display='none';
+  document.getElementById('screen-quiz').style.display='block';
+  renderQ();
+}
+
+function renderQ(){
+  const q=session[cur];
+  document.getElementById('prog-label').textContent=`Question ${cur+1} / 40`;
+  document.getElementById('score-live').textContent=`Score : ${score} pts`;
+  document.getElementById('prog-fill').style.width=((cur+1)/40*100).toFixed(1)+'%';
+  document.getElementById('q-tag').textContent=q.tag;
+  document.getElementById('q-text').textContent=q.text;
+  // prio badge
+  const prioEl=document.getElementById('q-prio');
+  prioEl.style.display=q.prio?'inline-block':'none';
+  // image
+  const img=document.getElementById('q-img');
+  img.style.display='none';
+  const imgPath=`images/${q.id}.jpg`;
+  img.onload=()=>{img.style.display='block';};
+  img.onerror=()=>{img.style.display='none';};
+  img.src=imgPath;
+  // options
+  const optsCt=document.getElementById('opts');
+  optsCt.innerHTML='';
+  const letters=['A','B','C','D'];
+  q.opts.forEach((o,i)=>{
+    const btn=document.createElement('button');
+    btn.className='opt';
+    btn.innerHTML=`<span class="opt-letter">${letters[i]}</span><span>${o}</span>`;
+    btn.onclick=()=>pick(i);
+    optsCt.appendChild(btn);
+  });
+  const fb=document.getElementById('feedback');
+  fb.className='feedback';
+  document.getElementById('next-btn').className='next-btn';
+}
+
+function pick(idx){
+  const q=session[cur];
+  const btns=document.querySelectorAll('.opt');
+  btns.forEach(b=>b.disabled=true);
+  const ok=idx===q.correct;
+  btns[idx].classList.add(ok?'correct':'wrong');
+  if(!ok)btns[q.correct].classList.add('correct');
+  let pts=0;
+  const isNsp=q.opts[idx]==='Je ne sais pas';
+  if(ok){pts=2;score+=2;correct_count++;}
+  else if(isNsp){pts=0;wrong_count++;}
+  else{if(q.prio){pts=-5;score-=5;penalties+=5;}else{pts=-1;score-=1;}wrong_count++;}
+  answered.push({q:q.text,ok,prio:q.prio,correct:q.opts[q.correct],pts});
+  const fb=document.getElementById('feedback');
+  let fbClass='feedback show '+(ok?'ok':'ko');
+  fb.className=fbClass;
+  if(ok){
+    document.getElementById('fb-title').textContent='✓ Bonne réponse ! +2 pts';
+    document.getElementById('fb-body').textContent=`Réponse correcte : "${q.opts[q.correct]}"`;
+  } else if(isNsp){
+    document.getElementById('fb-title').textContent='— Je ne sais pas : 0 pt';
+    document.getElementById('fb-body').textContent=`Bonne réponse : "${q.opts[q.correct]}"`;
+  } else {
+    const pen=q.prio?' — Question prioritaire : −5 pts':' : −1 pt';
+    document.getElementById('fb-title').textContent=`✗ Incorrect${pen}`;
+    document.getElementById('fb-body').textContent=`Bonne réponse : "${q.opts[q.correct]}"`;
+  }
+  // footer score update
+  document.getElementById('score-live').textContent=`Score : ${score} pts`;
+  document.getElementById('next-btn').className='next-btn show';
+  document.getElementById('next-btn').textContent=cur<39?'Question suivante →':'Voir mon score →';
+}
+
+function nextQ(){
+  cur++;
+  if(cur>=40){showScore();return;}
+  renderQ();
+}
+
+function showScore(){
+  document.getElementById('screen-quiz').style.display='none';
+  document.getElementById('screen-score').style.display='block';
+  document.getElementById('sc-num').textContent=score;
+  const pass=score>=40;
+  const ring=document.getElementById('score-ring');
+  ring.className='score-ring '+(pass?'pass':'fail');
+  let title,msg;
+  if(score>=70){title='Excellent ! 🎉';msg=`${score}/80 pts — Maîtrise parfaite de la réglementation AIPR.`;}
+  else if(score>=40){title='Réussi ✓';msg=`${score}/80 pts — Vous avez atteint le seuil. Bon travail !`;}
+  else if(score>=24){title='Presque...';msg=`${score}/80 pts — Encore quelques révisions et vous serez prêt(e) !`;}
+  else{title='À retravailler';msg=`${score}/80 pts — Consultez les corrections et recommencez.`;}
+  document.getElementById('sc-title').textContent=title;
+  document.getElementById('sc-msg').textContent=msg;
+  document.getElementById('sc-den').textContent='/ 80';
+  document.getElementById('st-ok').textContent=correct_count;
+  document.getElementById('st-ko').textContent=wrong_count;
+  document.getElementById('st-pen').textContent=penalties>0?`−${penalties}`:'0';
+  const verdict=document.getElementById('sc-verdict');
+  verdict.textContent=pass?'RÉUSSI ✓':'INSUFFISANT ✗';
+  verdict.style.color=pass?'#2e7d32':'#c0392b';
+  const rv=document.getElementById('rev-list');
+  rv.innerHTML='<div style="font-size:13px;font-weight:600;color:#333;margin-bottom:8px;">Récapitulatif des 40 questions</div>';
+  answered.forEach((a,i)=>{
+    const d=document.createElement('div');
+    d.className='rev-item';
+    const dotClass=a.ok?'ok':(a.prio?'ko-prio':'ko');
+    const prioTxt=(!a.ok&&a.prio)?'<span class="rev-prio">⚠ Prioritaire −5 pts</span>':'';
+    const ptsTxt=a.ok?'<span style="color:#2e7d32;font-size:10px;font-weight:600">+2 pts</span>':(a.prio?'<span style="color:#c0392b;font-size:10px;font-weight:600">−5 pts</span>':'<span style="color:#888;font-size:10px">0 pt</span>');
+    d.innerHTML=`<div class="rev-dot ${dotClass}"></div><div style="flex:1"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px"><div class="rev-q">Q${i+1}. ${a.q.substring(0,85)}${a.q.length>85?'…':''}</div>${ptsTxt}</div><div class="rev-a">${a.ok?'Correct':('Incorrect — Bonne réponse : '+a.correct)}</div>${prioTxt}</div>`;
+    rv.appendChild(d);
+  });
+}
+</script>
+</body>
+</html>
